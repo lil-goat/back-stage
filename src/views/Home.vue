@@ -1,21 +1,20 @@
 <script setup>
-import { ref } from 'vue'
+import { ref,onMounted,getCurrentInstance } from 'vue'
+
 const getImg = (user) => new URL(`../assets/images/${user}.png`,import.meta.url).href
-//这个tableData是假数据，等会我们使用axios请求mock数据
-const tableData = ref([
-    {
-      name: "Java",
-      todayBuy: 100,
-      monthBuy: 200,
-      totalBuy: 300,
-    },
-    {
-      name: "Python",
-      todayBuy: 100,
-      monthBuy: 200,
-      totalBuy: 300,
-    }
-])
+const {proxy} = getCurrentInstance()
+
+const tableData = ref([])
+
+const getTableData = async() => {
+   const res = await proxy.$api.getTableData()
+   console.log(res)
+   tableData.value = res.tableData
+}
+
+onMounted(() => {
+   getTableData()
+})
 
 const tableLabel = ref({
     name: "课程",
