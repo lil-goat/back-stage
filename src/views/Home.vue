@@ -1,19 +1,142 @@
 <script setup>
-import { ref,onMounted,getCurrentInstance } from 'vue'
+import component from 'element-plus/es/components/tree-select/src/tree-select-option.mjs'
+import { ref,onMounted,getCurrentInstance,reactive } from 'vue'
+import * as echarts from 'echarts'
+
+//这个是折线图和柱状图 两个图表共用的公共配置
+const xOptions = reactive({
+      // 图例文字颜色
+      textStyle: {
+        color: "#333",
+      },
+      legend: {},
+      grid: {
+        left: "20%",
+      },
+      // 提示框
+      tooltip: {
+        trigger: "axis",
+      },
+      xAxis: {
+        type: "category", // 类目轴
+        data: [],
+        axisLine: {
+          lineStyle: {
+            color: "#17b3a3",
+          },
+        },
+        axisLabel: {
+          interval: 0,
+          color: "#333",
+        },
+      },
+      yAxis: [
+        {
+          type: "value",
+          axisLine: {
+            lineStyle: {
+              color: "#17b3a3",
+            },
+          },
+        },
+      ],
+      color: ["#2ec7c9", "#b6a2de", "#5ab1ef", "#ffb980", "#d87a80", "#8d98b3"],
+      series: [],
+})
+
+const pieOptions = reactive({
+  tooltip: {
+    trigger: "item",
+  },
+  legend: {},
+  color: [
+    "#0f78f4",
+    "#dd536b",
+    "#9462e5",
+    "#a6a6a6",
+    "#e1bb22",
+    "#39c362",
+    "#3ed1cf",
+  ],
+  series: []
+})
 
 const getImg = (user) => new URL(`../assets/images/${user}.png`,import.meta.url).href
 const {proxy} = getCurrentInstance()
 
 const tableData = ref([])
+const countData = ref([])
+const chartData = ref([])
+const observer = ref([])
 
 const getTableData = async() => {
    const res = await proxy.$api.getTableData()
    console.log(res)
    tableData.value = res.tableData
+   if(!tableData.value) tableData.value = res
+}
+const getCountData = async() => {
+   const res = await proxy.$api.getCountData()
+   console.log(res)
+   countData.value = res
+   console.log(countData)
+}
+const getChartData = async() => {
+  const {orderData, videoData, userData} = await proxy.$api.getChartData()
+
+  xOptions.xAxis.data = orderData.date
+  xOptions.series = Object.keys(orderData.data[0]).map(val => ({
+    name:val,
+    data:orderData.data.map(item => item[val]),
+    type:'line'
+  }))
+  const onechart = echarts.init(proxy.$refs['echart'])
+  onechart.setOption(xOptions)
+
+  //对第二个表格渲染
+  xOptions.xAxis.data = userData.map(item => item.date)
+  xOptions.series = [
+    {
+      name: '新增用户',
+      data: userData.map(item => item.new),
+      type:'bar'
+    },
+    {
+      name: '活跃用户',
+      data: userData.map(item => item.active),
+      type: 'bar'
+    }
+  ]
+  const twochart = echarts.init(proxy.$refs['userEchart'])
+  twochart.setOption(xOptions)
+
+  pieOptions.series = [
+    {
+      data: videoData,
+      type: 'pie'
+    }
+  ]
+  const threechart = echarts.init(proxy.$refs['videoEchart'])
+  threechart.setOption(pieOptions)
+
+  // 监听页面变化
+
+  observer.value = new ResizeObserver((en) => {
+    onechart.resize()
+    twochart.resize()
+    threechart.resize()
+  })
+
+  // 容器存在
+  if(proxy.$refs['echart']){
+    observer.value.observe(proxy.$refs['echart'])
+  }
 }
 
 onMounted(() => {
    getTableData()
+   getCountData()
+   getChartData()
 })
 
 const tableLabel = ref({
@@ -55,7 +178,33 @@ const tableLabel = ref({
         </el-table>
       </el-card>
     </el-col>
-    <el-col :span="12"></el-col>
+    <el-col :span="16" style="margin-top: 20px;">
+      <div class="num">
+         <el-card
+         :body-style="{display:'flex',padding:0}"
+         v-for="item in countData"
+         :key="item.name"
+         >
+         <component :is="item.icon" class="icons" :style="{background:item.color}"></component>
+         <div class="detail">
+            <p class="num">￥{{ item.value }}</p>
+            <p class="txt">￥{{ item.name }}</p>
+         </div>
+         </el-card>
+      </div>
+      <el-card class="top-echart">
+        <div ref="echart" style="height: 280px;"></div>
+      </el-card>
+
+      <div class="graph">
+        <el-card>
+          <div ref="userEchart" style="height: 240px;"></div>
+        </el-card>
+        <el-card>
+          <div ref="videoEchart" style="height: 240px;"></div>
+        </el-card>
+      </div>
+    </el-col>
   </el-row>
 </template>
 
