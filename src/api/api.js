@@ -45,4 +45,12 @@ export default {
       data: params
     })
   },
+
+  createUser(data) {
+    return request({
+      url: '/user/createUser',
+      method: 'post',
+      data
+    })
+  },
 }
