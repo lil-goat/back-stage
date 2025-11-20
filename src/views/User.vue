@@ -33,9 +33,7 @@
         />
         <el-table-column fixed="right" label="操作" width="150" align="center">
           <template #default="scope">
-            <el-button type="primary" size="small" @click="handleClick">
-              编辑
-            </el-button>
+            <el-button type="primary" size="small" @click="handleClick(scope.row)">编辑</el-button>
             <el-button type="danger" size="small" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
@@ -110,11 +108,12 @@
 </template>
 
 <script setup>
-import { ref,getCurrentInstance, onMounted, onUnmounted } from 'vue'
+import { ref,getCurrentInstance, onMounted, onUnmounted, nextTick } from 'vue'
 const {proxy} = getCurrentInstance()
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const handleAdd = () => {
+  formUser.value = {}
   action.value = 'add'
   dialogVisible.value = true
   console.log(formUser.value)
@@ -122,14 +121,15 @@ const handleAdd = () => {
 
 const handleCancel = () => {
   dialogVisible.value = false
+  proxy.$refs["userForm"].resetFields()
   formUser.value = {}
 }
 
 const timeFormat = (time) => {
-    var time = new Date(time);
-    var year = time.getFullYear();
-    var month = time.getMonth() + 1;
-    var date = time.getDate();
+    let dateObj = new Date(time);
+    let year = dateObj.getFullYear();
+    let month = dateObj.getMonth() + 1;
+    let date = dateObj.getDate();
     function add(m) {
         return m < 10 ? "0" + m : m;
     }
@@ -142,8 +142,6 @@ const onSubmit = () => {
         
         //如果校验成功
         if (valid) {
-            console.log(formUser.value)
-            console.log("校验通过")
                 //res用于接收添加用户或者编辑用户接口的返回值
                 let res=null
                 //这里无论是新增或者是编辑，我们都要对这个日期进行一个格式化
@@ -154,7 +152,8 @@ const onSubmit = () => {
                   config.formUser = formUser.value
                   res = await proxy.$api.createUser(config.formUser);
                 }else if(action.value == "edit"){
-
+                  config.formUser = formUser.value
+                  res = await proxy.$api.updateUser(config.formUser);
                 }
                 //如果接口调用成功
                 if(res){
@@ -214,6 +213,16 @@ const rules = ref({
 const handleCurrentChange = (currentPage) => {
   config.page = currentPage
   getUserData(config)
+}
+
+const handleClick = (item) => {
+  action.value = 'edit'
+  nextTick(() => {
+    formUser.value = {...item}
+    dialogVisible.value = true
+    formUser.value.birth = timeFormat(item.birth)
+    formUser.value.sex = item.sex === 1 ? '男' : '女'
+  })
 }
 
 const config = {
@@ -305,9 +314,6 @@ const getMinWidth = (prop) => {
   return widthMap[prop] || 120
 }
 
-const handleClick = () => {
-  // 编辑操作
-}
 
 // 组件卸载时清理事件监听
 onUnmounted(() => {

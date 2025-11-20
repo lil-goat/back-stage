@@ -53,4 +53,12 @@ export default {
       data
     })
   },
+
+  updateUser(data) {
+    return request({
+      url: '/user/updateUser',
+      method: 'post',
+      data
+    })
+  }
 }
