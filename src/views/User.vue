@@ -278,7 +278,6 @@ const handleClear = () => {
 
 const getUserData = async (keyword) => {
   let data = await proxy.$api.getUserData(keyword)
-  console.log(data)
   tableData.value = data.list.map(item => ({
     ...item,
     sexLabel: item.sex === 1 ? '男' : '女'

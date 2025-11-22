@@ -71,15 +71,12 @@ const observer = ref([])
 
 const getTableData = async() => {
    const res = await proxy.$api.getTableData()
-   console.log(res)
    tableData.value = res.tableData
    if(!tableData.value) tableData.value = res
 }
 const getCountData = async() => {
    const res = await proxy.$api.getCountData()
-   console.log(res)
    countData.value = res
-   console.log(countData)
 }
 const getChartData = async() => {
   const {orderData, videoData, userData} = await proxy.$api.getChartData()

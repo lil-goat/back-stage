@@ -1,57 +1,19 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 import { useCounterStore } from '@/store';
+import { useRoute, useRouter } from 'vue-router';
 
-// 菜单数据
-const list = ref([
-  {
-    path: '/home',
-    name: 'home',
-    label: '首页',
-    icon: 'house',
-    url: 'Home'
-  },
-  {
-    path: '/mall',
-    name: 'mall',
-    label: '商品管理',
-    icon: 'video-play',
-    url: 'Mall'
-  },
-  {
-    path: '/user',
-    name: 'user',
-    label: '用户管理',
-    icon: 'user',
-    url: 'User'
-  },
-  {
-    path: '/other',
-    label: '其他',
-    icon: 'location',
-    children: [
-      {
-        path: '/page1',
-        name: 'page1',
-        label: '页面1',
-        icon: 'setting',
-        url: 'Page1'
-      },
-      {
-        path: '/page2',
-        name: 'page2',
-        label: '页面2',
-        icon: 'setting',
-        url: 'Page2'
-      }
-    ]
-  }
-]);
-
+const route = useRoute();
+const router = useRouter();
 const store = useCounterStore();
 
-// 计算属性优化
-const isCollapse = computed(() => store.iscollapse);
+// 菜单数据 - 修复访问路径
+const list = computed(() => store.state.menuList)
+
+const activeMenu = computed(() => route.path);
+
+// 计算属性优化 - 修复访问路径
+const isCollapse = computed(() => store.state.iscollapse);
 const width = computed(() => isCollapse.value ? "64px" : "200px");
 
 // 使用记忆化优化菜单数据处理
@@ -61,16 +23,15 @@ const noChildren = computed(() => {
 
 const hasChildren = computed(() => {
   return list.value.filter(item => item.children && item.children.length > 0);
-});
+}); 
 
-// 当前激活的菜单项
-const activeIndex = ref('/home');
-
-// 菜单项点击处理
-const handleMenuSelect = (index) => {
-  activeIndex.value = index;
-  console.log('菜单项被点击:', index);
+// 修复store.iscollapse的直接赋值问题
+const updateCollapseState = (value) => {
+  if (store.state && store.state.value) {
+    store.state.value.iscollapse = value;
+  }
 };
+
 
 // 性能优化：防抖处理
 let resizeTimer = null;
@@ -79,7 +40,7 @@ const handleResize = () => {
   resizeTimer = setTimeout(() => {
     // 在小屏幕下自动折叠菜单
     if (window.innerWidth < 768 && !isCollapse.value) {
-      store.iscollapse = true;
+      updateCollapseState(true);
     }
   }, 250);
 };
@@ -89,7 +50,7 @@ onMounted(() => {
   window.addEventListener('resize', handleResize);
   // 初始化时检查屏幕尺寸
   if (window.innerWidth < 768) {
-    store.iscollapse = true;
+    updateCollapseState(true);
   }
 });
 
@@ -99,6 +60,11 @@ onUnmounted(() => {
     clearTimeout(resizeTimer);
   }
 });
+
+const handleMenuSelect = (item) => {
+  router.push(item.path);
+  store.selectMenu(item)
+};
 </script>
 
 <template>
@@ -108,13 +74,12 @@ onUnmounted(() => {
       <el-menu
         :key="isCollapse ? 'collapsed' : 'expanded'"
         class="optimized-menu"
-        :default-active="activeIndex"
+        :default-active="activeMenu"
         background-color="#545c64"
         text-color="#fff"
         active-text-color="#ffd04b"
         :collapse="isCollapse"
         :collapse-transition="false"
-        @select="handleMenuSelect"
         unique-opened
       >
         <!-- 标题区域 -->
@@ -128,6 +93,7 @@ onUnmounted(() => {
           v-for="item in noChildren"
           :index="item.path"
           :key="item.path"
+          @click="handleMenuSelect(item)"
           class="menu-item"
         >
           <el-icon class="menu-icon">
@@ -156,6 +122,7 @@ onUnmounted(() => {
             v-for="subItem in item.children"
             :index="subItem.path"
             :key="subItem.path"
+            @click="handleMenuSelect(subItem)"
             class="sub-menu-item"
           >
             <el-icon class="sub-menu-icon">

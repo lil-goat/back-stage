@@ -8,11 +8,15 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import { createPinia } from 'pinia'
 import "@/api/mock.js"
 import api from './api/api'
+import { useCounterStore } from './store'
 
 const app = createApp(App)
 const pinia = createPinia()
-  
-app.use(router).use(pinia).use(ElementPlus).mount('#app')
+
+app.use(pinia)
+const store = useCounterStore()
+store.addMenu(router,"refresh")
+app.use(router).use(ElementPlus).mount('#app')
 app.config.globalProperties.$api = api
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
